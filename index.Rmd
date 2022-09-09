@@ -1,30 +1,252 @@
 ---
-title: "report"
+title: "vicsek simulation report"
 author: "Pei Tan"
-date: "September 6, 2022"
-output: html_document
+# date: "Last compiled on `r format(Sys.time(), '%d %B, %Y')`"
+output: rmdformats::robobook
+editor_options: 
+chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
+
+require(ggplot2)
+# require(reticulate)
+# use_python("D:\\Project\\20220706_VicsekModel\\python_test\\venv\\Scripts\\python.exe")
+
 ```
 
-## R Markdown
+The simulation pipline is constructed on python, but plot by R. This is a test on low time-limit. 
 
-This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
 
-When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+# vicsek simulation -- radius
 
-```{r cars}
-summary(cars)
+Here, radius is the particle horizon. Particles can detect neighbors within the distance. 
+
+The simulation parameters sets are: 1x1 box; 100 particles; each type 50; control group has radius of 0.1, test groups' radius are 0.005, 0.01, 0.015, 0.02, 0.025. 
+
+
+
+```{r radius}
+
+
+accu_df <- read.csv("D:/Project/20220706_VicsekModel/python/accu_radius_forR.csv")[,-1]
+
+long_accu <- accu_df[51:54]
+long_accu$radius <- as.factor(long_accu$radius)
+
+ggplot(long_accu, aes(x=time, y=average)) +
+  geom_ribbon(aes(ymax = average + std, 
+                  ymin = average - std, 
+                  fill = radius), 
+              alpha = 0.3) +
+  geom_line(aes(colour = radius)) +
+  labs(x = "simulation time", 
+       y = "kmeans-cluster accuracy", 
+       title = "Different Vision Radius") +
+  theme_bw()
+
+short_accu <- accu_df[51:54]
+short_data <- short_accu[short_accu$radius %in% c(0.005, 0.01, 0.02),]
+short_data$radius <- as.factor(short_data$radius)
+
+ggplot(short_data, aes(x=time, y=average)) +
+  geom_ribbon(aes(ymax = average + std, 
+                  ymin = average - std, 
+                  fill = radius), 
+              alpha = 0.3) +
+  geom_line(aes(colour = radius)) +
+  labs(x = "simulation time", 
+       y = "kmeans-cluster accuracy", 
+       title = "Different Vision Radius (few radius)") +
+  theme_bw()
+
 ```
 
-## Including Plots
 
-You can also embed plots, for example:
 
-```{r pressure, echo=FALSE}
-plot(pressure)
+
+
+# vicsek simulation -- noise
+
+Noise is the angle random change in each time step. 
+
+The simulation parameters sets are: 1x1 box; 100 particles; each type 50; control group has noise (eta) of 0.1, test groups' eta are 0.02, 0.03, 0.04, 0.05, 0.2, 0.3, 0.4, 0.5. 
+
+
+
+```{r noise}
+
+accu_df <- read.csv("D:/Project/20220706_VicsekModel/python/accu_noise_forR.csv")[,-1]
+
+accu_df <- accu_df[, 51:54]
+small_accu <- accu_df[accu_df$noise %in% c(0.02, 0.03, 0.04, 0.05),]
+small_accu$noise <- as.factor(small_accu$noise)
+
+legend_label <- paste("0.1 / ", c(0.02, 0.03, 0.04, 0.05))
+
+ggplot(small_accu, aes(x=time, y=average)) +
+  geom_ribbon(aes(ymax = average + std, 
+                  ymin = average - std, 
+                  fill = noise), 
+              alpha = 0.3) +
+  geom_line(aes(colour = noise)) +
+  # scale_fill_discrete(labels=legend_label) +
+  labs(x = "simulation time", 
+       y = "kmeans-cluster accuracy", 
+       title = "Different Noise (slight noise)") +
+  theme_bw()
+
+large_accu <- accu_df[accu_df$noise %in% c(0.2, 0.3, 0.4, 0.5),]
+large_accu$noise <- as.factor(large_accu$noise)
+
+ggplot(large_accu, aes(x=time, y=average)) +
+  geom_ribbon(aes(ymax = average + std, 
+                  ymin = average - std, 
+                  fill = noise), 
+              alpha = 0.3) +
+  geom_line(aes(colour = noise)) +
+  labs(x = "simulation time", 
+       y = "kmeans-cluster accuracy", 
+       title = "Different Noise (strong noise)") +
+  theme_bw()
+
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+# vicsek simulation -- boundary
+
+Boundary is the sides length of square box. It is a periodic boundary, means teh 
+
+The simulation parameters sets are: 100 particles; each type 50; control group has noise (eta) of 0.1, test groups' eta are 0.02, 0.03, 0.04, 0.05, 0.2, 0.3, 0.4, 0.5. 
+
+
+
+
+```{r boundary}
+
+accu_df <- read.csv("D:/Project/20220706_VicsekModel/python/accu_bdy_forR.csv")[,-1]
+
+all_accu <- accu_df[, 51:54]
+# small_accu <- accu_df[accu_df$noise %in% c(0.02, 0.03, 0.04, 0.05),]
+all_accu$bdy <- as.factor(all_accu$bdy)
+
+# legend_label <- paste("0.1 / ", c(0.02, 0.03, 0.04, 0.05))
+
+ggplot(all_accu, aes(x=time, y=average)) +
+  geom_ribbon(aes(ymax = average + std, 
+                  ymin = average - std, 
+                  fill = bdy), 
+              alpha = 0.3) +
+  geom_line(aes(colour = bdy)) +
+  labs(x = "simulation time", 
+       y = "kmeans-cluster accuracy", 
+       title = "Different Boundary") +
+  theme_bw()
+
+
+small_accu <- accu_df[accu_df$bdy %in% c(1,2,3,4,5),]
+small_accu$bdy <- as.factor(small_accu$bdy)
+
+# legend_label <- paste("0.1 / ", c(0.02, 0.03, 0.04, 0.05))
+
+ggplot(small_accu, aes(x=time, y=average)) +
+  geom_ribbon(aes(ymax = average + std, 
+                  ymin = average - std, 
+                  fill = bdy), 
+              alpha = 0.3) +
+  geom_line(aes(colour = bdy)) +
+  labs(x = "simulation time", 
+       y = "kmeans-cluster accuracy", 
+       title = "Different Boundary") +
+  theme_bw()
+
+
+large_accu <- accu_df[accu_df$bdy %in% c(5,6,7,8,9,10),]
+large_accu$bdy <- as.factor(large_accu$bdy)
+
+# legend_label <- paste("0.1 / ", c(0.02, 0.03, 0.04, 0.05))
+
+ggplot(large_accu, aes(x=time, y=average)) +
+  geom_ribbon(aes(ymax = average + std, 
+                  ymin = average - std, 
+                  fill = bdy), 
+              alpha = 0.3) +
+  geom_line(aes(colour = bdy)) +
+  labs(x = "simulation time", 
+       y = "kmeans-cluster accuracy", 
+       title = "Different Boundary") +
+  theme_bw()
+
+```
+
+
+
+# vicsek simulation -- quantity (!)
+
+Quantity is the particle numbers. 
+
+The simulation parameters sets are: 5x5 box; n particles, contains 2 different type of particcles with the same number.The only feature to distinct this two type particle is their noise magnitude (0.1 v.s. 0.2). Other parameters are set equally: 0.1 velocity, 0.1 radius.
+
+
+
+```{r num}
+
+accu_df <- read.csv("D:/Project/20220706_VicsekModel/python/accu_num2_forR.csv")[,-1]
+
+all_accu <- accu_df[, 51:54]
+# small_accu <- accu_df[accu_df$noise %in% c(0.02, 0.03, 0.04, 0.05),]
+all_accu$num <- as.factor(all_accu$num)
+
+# legend_label <- paste("0.1 / ", c(0.02, 0.03, 0.04, 0.05))
+
+ggplot(all_accu, aes(x=time, y=average)) +
+  geom_ribbon(aes(ymax = average + std, 
+                  ymin = average - std, 
+                  fill = num), 
+              alpha = 0.3) +
+  geom_line(aes(colour = num)) +
+  labs(x = "simulation time", 
+       y = "kmeans-cluster accuracy", 
+       title = "Different Quantity of Particles") +
+  theme_bw()
+
+
+small_accu <- accu_df[accu_df$num %in% c(20,40,60,80, 100),]
+small_accu$num <- as.factor(small_accu$num)
+
+# legend_label <- paste("0.1 / ", c(0.02, 0.03, 0.04, 0.05))
+
+ggplot(small_accu, aes(x=time, y=average)) +
+  geom_ribbon(aes(ymax = average + std,
+                  ymin = average - std,
+                  fill = num),
+              alpha = 0.3) +
+  geom_line(aes(colour = num)) +
+  labs(x = "simulation time",
+       y = "kmeans-cluster accuracy",
+       title = "Different Quantity of Particles (low amount)") +
+  theme_bw()
+
+
+large_accu <- accu_df[accu_df$num %in% c(100, 200, 300, 400, 500, 600),]
+large_accu$num <- as.factor(large_accu$num)
+
+# legend_label <- paste("0.1 / ", c(0.02, 0.03, 0.04, 0.05))
+
+ggplot(large_accu, aes(x=time, y=average)) +
+  geom_ribbon(aes(ymax = average + std,
+                  ymin = average - std,
+                  fill = num),
+              alpha = 0.3) +
+  geom_line(aes(colour = num)) +
+  labs(x = "simulation time",
+       y = "kmeans-cluster accuracy",
+       title = "Different Quantity of Particles (large amount)") +
+  theme_bw()
+
+```
+
+
+
+
