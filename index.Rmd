@@ -8,244 +8,155 @@ chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
 
 require(ggplot2)
-# require(reticulate)
-# use_python("D:\\Project\\20220706_VicsekModel\\python_test\\venv\\Scripts\\python.exe")
-
-```
-
-The simulation pipline is constructed on python, but plot by R. This is a test on low time-limit. 
-
-
-# vicsek simulation -- radius
-
-Here, radius is the particle horizon. Particles can detect neighbors within the distance. 
-
-The simulation parameters sets are: 1x1 box; 100 particles; each type 50; control group has radius of 0.1, test groups' radius are 0.005, 0.01, 0.015, 0.02, 0.025. 
-
-
-
-```{r radius}
-
-
-accu_df <- read.csv("D:/Project/20220706_VicsekModel/python/accu_radius_forR.csv")[,-1]
-
-long_accu <- accu_df[51:54]
-long_accu$radius <- as.factor(long_accu$radius)
-
-ggplot(long_accu, aes(x=time, y=average)) +
-  geom_ribbon(aes(ymax = average + std, 
-                  ymin = average - std, 
-                  fill = radius), 
-              alpha = 0.3) +
-  geom_line(aes(colour = radius)) +
-  labs(x = "simulation time", 
-       y = "kmeans-cluster accuracy", 
-       title = "Different Vision Radius") +
-  theme_bw()
-
-short_accu <- accu_df[51:54]
-short_data <- short_accu[short_accu$radius %in% c(0.005, 0.01, 0.02),]
-short_data$radius <- as.factor(short_data$radius)
-
-ggplot(short_data, aes(x=time, y=average)) +
-  geom_ribbon(aes(ymax = average + std, 
-                  ymin = average - std, 
-                  fill = radius), 
-              alpha = 0.3) +
-  geom_line(aes(colour = radius)) +
-  labs(x = "simulation time", 
-       y = "kmeans-cluster accuracy", 
-       title = "Different Vision Radius (few radius)") +
-  theme_bw()
+library(viridis)
 
 ```
 
 
 
+The simulation pipline is constructed on python, plot by R.
 
+
+# vicsek simulation -- density
+
+
+
+```{r density}
+
+
+accu_df <- read.csv("num_accu_mat.csv")[,-1]
+
+repeat_time = 10
+
+accu_df <- accu_df[accu_df$time < 3000, ]
+
+accu_df$perc5 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.05)))
+accu_df$perc95 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.95)))
+accu_df$middle <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.5)))
+accu_df$mean <- apply(accu_df[, 1:repeat_time], 1, function(x) mean(x))
+
+ggplot(accu_df, aes(x=time, y=middle, group=num, color=num)) +
+  geom_point()+geom_line()+
+  scale_color_viridis(option = "D") +
+  labs(x = "simulation time", 
+       y = "kmeans-cluster accuracy", 
+       title = "Different density scale") +
+  theme_minimal()
+
+```
+
+
+```{r num require time}
+
+
+accu_df <- read.csv("num_reach_time.csv")[,-1]
+
+accu_df <- accu_df[accu_df$time >= 50, ]
+
+accu_df$perc5 <- apply(accu_df[, 1:100], 1, function(x) quantile(x, probs = c(0.05)))
+accu_df$perc95 <- apply(accu_df[, 1:100], 1, function(x) quantile(x, probs = c(0.95)))
+accu_df$middle <- apply(accu_df[, 1:100], 1, function(x) quantile(x, probs = c(0.5)))
+accu_df$mean <- apply(accu_df[, 1:100], 1, function(x) mean(x))
+
+
+ggplot(accu_df, aes(x=time, y=middle)) +
+  geom_point(color="#f37735", size=4) +
+  geom_ribbon(aes(ymin = perc5, ymax = perc95), fill="#f37735", alpha = 0.2) +
+  labs(x = "density (density = total ptcl amount / area)", 
+       y = "Required time", 
+       title = "") +
+  theme_bw()
+
+
+```
 
 # vicsek simulation -- noise
-
-Noise is the angle random change in each time step. 
-
-The simulation parameters sets are: 1x1 box; 100 particles; each type 50; control group has noise (eta) of 0.1, test groups' eta are 0.02, 0.03, 0.04, 0.05, 0.2, 0.3, 0.4, 0.5. 
 
 
 
 ```{r noise}
 
-accu_df <- read.csv("D:/Project/20220706_VicsekModel/python/accu_noise_forR.csv")[,-1]
 
-accu_df <- accu_df[, 51:54]
-small_accu <- accu_df[accu_df$noise %in% c(0.02, 0.03, 0.04, 0.05),]
-small_accu$noise <- as.factor(small_accu$noise)
+accu_df <- read.csv("noise_accu_mat.csv")[,-1]
 
-legend_label <- paste("0.1 / ", c(0.02, 0.03, 0.04, 0.05))
+repeat_time = 10
 
-ggplot(small_accu, aes(x=time, y=average)) +
-  geom_ribbon(aes(ymax = average + std, 
-                  ymin = average - std, 
-                  fill = noise), 
-              alpha = 0.3) +
-  geom_line(aes(colour = noise)) +
-  # scale_fill_discrete(labels=legend_label) +
+accu_df$perc5 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.05)))
+accu_df$perc95 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.95)))
+accu_df$middle <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.5)))
+accu_df$mean <- apply(accu_df[, 1:repeat_time], 1, function(x) mean(x))
+
+ggplot(accu_df, aes(x=time, y=middle, group=noise, color=noise)) +
+  geom_point()+geom_line()+
+  scale_color_viridis(option = "D") +
   labs(x = "simulation time", 
        y = "kmeans-cluster accuracy", 
-       title = "Different Noise (slight noise)") +
-  theme_bw()
-
-large_accu <- accu_df[accu_df$noise %in% c(0.2, 0.3, 0.4, 0.5),]
-large_accu$noise <- as.factor(large_accu$noise)
-
-ggplot(large_accu, aes(x=time, y=average)) +
-  geom_ribbon(aes(ymax = average + std, 
-                  ymin = average - std, 
-                  fill = noise), 
-              alpha = 0.3) +
-  geom_line(aes(colour = noise)) +
-  labs(x = "simulation time", 
-       y = "kmeans-cluster accuracy", 
-       title = "Different Noise (strong noise)") +
-  theme_bw()
+       title = "Different noise scale") +
+  theme_minimal()
 
 ```
 
 
-# vicsek simulation -- boundary
-
-Boundary is the sides length of square box. It is a periodic boundary, means teh 
-
-The simulation parameters sets are: 100 particles; each type 50; control group has noise (eta) of 0.1, test groups' eta are 0.02, 0.03, 0.04, 0.05, 0.2, 0.3, 0.4, 0.5. 
+# vicsek simulation -- radius
 
 
+```{r radius}
 
 
-```{r boundary}
+accu_df <- read.csv("radius2_accu_mat.csv")[,-1]
 
-accu_df <- read.csv("D:/Project/20220706_VicsekModel/python/accu_bdy_forR.csv")[,-1]
+repeat_time = 10
 
-all_accu <- accu_df[, 51:54]
-# small_accu <- accu_df[accu_df$noise %in% c(0.02, 0.03, 0.04, 0.05),]
-all_accu$bdy <- as.factor(all_accu$bdy)
 
-# legend_label <- paste("0.1 / ", c(0.02, 0.03, 0.04, 0.05))
+accu_df$perc5 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.05)))
+accu_df$perc95 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.95)))
+accu_df$middle <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.5)))
+accu_df$mean <- apply(accu_df[, 1:repeat_time], 1, function(x) mean(x))
 
-ggplot(all_accu, aes(x=time, y=average)) +
-  geom_ribbon(aes(ymax = average + std, 
-                  ymin = average - std, 
-                  fill = bdy), 
-              alpha = 0.3) +
-  geom_line(aes(colour = bdy)) +
+ggplot(accu_df, aes(x=time, y=middle, group=radius, color=radius)) +
+  geom_point()+geom_line()+
+  scale_color_viridis(option = "D") +
   labs(x = "simulation time", 
        y = "kmeans-cluster accuracy", 
-       title = "Different Boundary") +
-  theme_bw()
+       title = "Different radius scale") +
+  theme_minimal()
+```
 
 
-small_accu <- accu_df[accu_df$bdy %in% c(1,2,3,4,5),]
-small_accu$bdy <- as.factor(small_accu$bdy)
 
-# legend_label <- paste("0.1 / ", c(0.02, 0.03, 0.04, 0.05))
+```{r radius_eta}
 
-ggplot(small_accu, aes(x=time, y=average)) +
-  geom_ribbon(aes(ymax = average + std, 
-                  ymin = average - std, 
-                  fill = bdy), 
-              alpha = 0.3) +
-  geom_line(aes(colour = bdy)) +
+#### radius when eta = [0.1, 0.5]
+accu_df <- read.csv("radius_accu_mat.csv")[,-1]
+
+repeat_time = 10
+
+accu_df <- accu_df[accu_df$time < 4000, ]
+
+accu_df$perc5 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.05)))
+accu_df$perc95 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.95)))
+accu_df$middle <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.5)))
+accu_df$mean <- apply(accu_df[, 1:repeat_time], 1, function(x) mean(x))
+
+ggplot(accu_df, aes(x=time, y=middle, group=radius, color=radius)) +
+  geom_point()+geom_line()+
+  scale_color_viridis(option = "D") +
   labs(x = "simulation time", 
        y = "kmeans-cluster accuracy", 
-       title = "Different Boundary") +
-  theme_bw()
+       title = "Different radius scale with noise difference") +
+  theme_minimal()
 
-
-large_accu <- accu_df[accu_df$bdy %in% c(5,6,7,8,9,10),]
-large_accu$bdy <- as.factor(large_accu$bdy)
-
-# legend_label <- paste("0.1 / ", c(0.02, 0.03, 0.04, 0.05))
-
-ggplot(large_accu, aes(x=time, y=average)) +
-  geom_ribbon(aes(ymax = average + std, 
-                  ymin = average - std, 
-                  fill = bdy), 
-              alpha = 0.3) +
-  geom_line(aes(colour = bdy)) +
-  labs(x = "simulation time", 
-       y = "kmeans-cluster accuracy", 
-       title = "Different Boundary") +
-  theme_bw()
+select_df <- accu_df[accu_df$middle >= 1, ]
+table(factor(select_df$radius))
 
 ```
 
 
 
-# vicsek simulation -- quantity (!)
 
-Quantity is the particle numbers. 
-
-The simulation parameters sets are: 5x5 box; n particles, contains 2 different type of particcles with the same number.The only feature to distinct this two type particle is their noise magnitude (0.1 v.s. 0.2). Other parameters are set equally: 0.1 velocity, 0.1 radius.
-
-
-
-```{r num}
-
-accu_df <- read.csv("D:/Project/20220706_VicsekModel/python/accu_num2_forR.csv")[,-1]
-
-all_accu <- accu_df[, 51:54]
-# small_accu <- accu_df[accu_df$noise %in% c(0.02, 0.03, 0.04, 0.05),]
-all_accu$num <- as.factor(all_accu$num)
-
-# legend_label <- paste("0.1 / ", c(0.02, 0.03, 0.04, 0.05))
-
-ggplot(all_accu, aes(x=time, y=average)) +
-  geom_ribbon(aes(ymax = average + std, 
-                  ymin = average - std, 
-                  fill = num), 
-              alpha = 0.3) +
-  geom_line(aes(colour = num)) +
-  labs(x = "simulation time", 
-       y = "kmeans-cluster accuracy", 
-       title = "Different Quantity of Particles") +
-  theme_bw()
-
-
-small_accu <- accu_df[accu_df$num %in% c(20,40,60,80, 100),]
-small_accu$num <- as.factor(small_accu$num)
-
-# legend_label <- paste("0.1 / ", c(0.02, 0.03, 0.04, 0.05))
-
-ggplot(small_accu, aes(x=time, y=average)) +
-  geom_ribbon(aes(ymax = average + std,
-                  ymin = average - std,
-                  fill = num),
-              alpha = 0.3) +
-  geom_line(aes(colour = num)) +
-  labs(x = "simulation time",
-       y = "kmeans-cluster accuracy",
-       title = "Different Quantity of Particles (low amount)") +
-  theme_bw()
-
-
-large_accu <- accu_df[accu_df$num %in% c(100, 200, 300, 400, 500, 600),]
-large_accu$num <- as.factor(large_accu$num)
-
-# legend_label <- paste("0.1 / ", c(0.02, 0.03, 0.04, 0.05))
-
-ggplot(large_accu, aes(x=time, y=average)) +
-  geom_ribbon(aes(ymax = average + std,
-                  ymin = average - std,
-                  fill = num),
-              alpha = 0.3) +
-  geom_line(aes(colour = num)) +
-  labs(x = "simulation time",
-       y = "kmeans-cluster accuracy",
-       title = "Different Quantity of Particles (large amount)") +
-  theme_bw()
-
-```
 
 
 
