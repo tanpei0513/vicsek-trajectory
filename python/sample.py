@@ -1,19 +1,27 @@
 import numpy as np
 
-from vicsek import vicsekGenerator
-from plot import plotPCA, plotArrow, plotAccuracy
+from vicsek_1122 import VicsekGenerator
+
 
 #################
 ##### vicsek simulations
 #################
 
-np.random.seed(314)
-p = vicsekGenerator(label="type1", noise=0.1, radius=0.1, numbers=100)
-p = vicsekGenerator(label="type2", noise=0.3, radius=0.1, numbers=100)
+np.random.seed(1)
 
-p.initiate(tmax=1000)
-# plotArrow(model=p)
+p = VicsekGenerator(label="type1", noise=0.1, radius=0.1, numbers=100)
+p = VicsekGenerator(label="type2", noise=0.3, radius=0.1, numbers=100)
+# p = VicsekGenerator(label="type3", noise=0.5, radius=0.1, numbers=100)
+p.initiate(tmax=1e3)
+p.reach_time()
+p.pca(time_series=[*np.arange(10, 100), *np.arange(100, np.ceil((p.tmax) / 50) * 50, 50)])
+p.ncluster_plot(ncluster_num=10, if_movie=True, filename="nclust_double")
+p.pca_plot(if_movie=True, filename="pca_triple")
+p.pca_org_plot(if_movie=True, filename="pca_triple_org")
+p.ptcl_pos_plot(time_end=500)
+p.accuracy_plot(if_movie=True, filename="accuracy_triple")
 
-p.pca(cluster_type="kmeans")
-# plotPCA(model=p)
-# plotAccuracy(model=p)
+p.remove_xpos()
+p.remove_ypos()
+
+p.reset()
