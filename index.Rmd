@@ -1,5 +1,5 @@
 ---
-title: "vicsek simulation report"
+title: "vicsek Simulation"
 author: "Pei Tan"
 # date: "Last compiled on `r format(Sys.time(), '%d %B, %Y')`"
 output: rmdformats::robobook
@@ -8,16 +8,104 @@ chunk_output_type: inline
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+options(warn = -1)
 
 require(ggplot2)
-library(viridis)
+library(RColorBrewer)
+library(dplyr)
+library(tidyr)
+library(ggpmisc)
+
+setwd("D:/Project/20220706_VicsekModel/Github/vicsek_trajectory")
 
 ```
 
 
 
-The simulation pipline is constructed on python, plot by R.
+
+# D'Orsogna
+```{dorsogna_clockwise}
+# Single Type
+# 
+# clockwise: type1 (blue); anti-clockwise: type2 (orange).
+# 
+# <video width="75%" height="75%" controls>
+# <source src="python/video/dorsogna_clock.mp4" type="video/mp4">
+# </video>
+# 
+# 
+# <!-- <video width="75%" height="75%" controls> -->
+# <!-- <source src="python/video/dorsogna_pca_clock_actan.mp4" type="video/mp4"> -->
+# <!-- </video> -->
+# 
+# 
+# <video width="75%" height="75%" controls>
+# <source src="python/video/dorsogna_pca_clock_actan.mp4" type="video/mp4">
+# </video>
+```
+
+<video width="75%" height="75%" controls>
+<source src="video/dorsogna_ptcl.mp4" type="video/mp4">
+</video>
+
+## D'Orsogna pca
+<video width="75%" height="75%" controls>
+<source src="video/dorsogna_pca_org.mp4" type="video/mp4">
+</video>
+
+
+## D'Orsogna spectral cluster
+
+<video width="75%" height="75%" controls>
+<source src="video/dorsogna_spectral_pca.mp4" type="video/mp4">
+</video>
+
+
+
+# Vicsek (Double types)
+
+## motion
+<video width="75%" height="75%" controls>
+
+<source src="video/vicsek_ptcl_double.mp4" type="video/mp4">
+
+</video>
+
+## PCA
+
+<video width="75%" height="75%" controls>
+
+<source src="video/vicsek_pca_org_double.mp4" type="video/mp4">
+
+</video>
+
+## cluster (kmeans)
+
+<video width="75%" height="75%" controls>
+
+<source src="video/vicsek_kmeans_pca_double.mp4" type="video/mp4">
+
+</video>
+
+<video width="75%" height="75%" controls>
+
+<source src="video/vicsek_kmeans_accu_double.mp4" type="video/mp4">
+
+</video>
+
+## n Cluster (silhouette)
+
+
+<video width="75%" height="75%" controls>
+<source src="video/vicsek_ncluster_silhouette_pca_double.mp4" type="video/mp4">
+</video>
+
+
+<video width="75%" height="75%" controls>
+<source src="video/vicsek_ncluster_silhouette_double.mp4" type="video/mp4">
+</video>
+
 
 
 # vicsek simulation -- density
@@ -25,138 +113,344 @@ The simulation pipline is constructed on python, plot by R.
 
 
 ```{r density}
-
-
-accu_df <- read.csv("num_accu_mat.csv")[,-1]
-
-repeat_time = 10
-
-accu_df <- accu_df[accu_df$time < 3000, ]
-
-accu_df$perc5 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.05)))
-accu_df$perc95 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.95)))
-accu_df$middle <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.5)))
-accu_df$mean <- apply(accu_df[, 1:repeat_time], 1, function(x) mean(x))
-
-ggplot(accu_df, aes(x=time, y=middle, group=num, color=num)) +
-  geom_point()+geom_line()+
-  scale_color_viridis(option = "D") +
-  labs(x = "simulation time", 
-       y = "kmeans-cluster accuracy", 
-       title = "Different density scale") +
-  theme_minimal()
-
-```
-
-
-```{r num require time}
-
-
-accu_df <- read.csv("num_reach_time.csv")[,-1]
-
-accu_df <- accu_df[accu_df$time >= 50, ]
-
-accu_df$perc5 <- apply(accu_df[, 1:100], 1, function(x) quantile(x, probs = c(0.05)))
-accu_df$perc95 <- apply(accu_df[, 1:100], 1, function(x) quantile(x, probs = c(0.95)))
-accu_df$middle <- apply(accu_df[, 1:100], 1, function(x) quantile(x, probs = c(0.5)))
-accu_df$mean <- apply(accu_df[, 1:100], 1, function(x) mean(x))
-
-
-ggplot(accu_df, aes(x=time, y=middle)) +
-  geom_point(color="#f37735", size=4) +
-  geom_ribbon(aes(ymin = perc5, ymax = perc95), fill="#f37735", alpha = 0.2) +
-  labs(x = "density (density = total ptcl amount / area)", 
-       y = "Required time", 
-       title = "") +
+accu_df <- read.csv("python/forR/num_accu_all.csv")[-1]
+accu_df <- accu_df[accu_df$num %in% c(50,100,150,200,500),]
+# accu_df <- accu_df[accu_df$time <= 1500, ]
+q = c(.05, .5, .95)
+df_plot <- accu_df %>%
+  group_by(time, num) %>%
+  summarize(q05 = quantile(value, probs = q[1]), 
+            q50 = quantile(value, probs = q[2]),
+            q95 = quantile(value, probs = q[3]),
+            avg = mean(value))
+color_scale = ceiling(length(unique(df_plot$num)) * 1.5)
+ggplot(df_plot, aes(x=time, y=q50, group=num, color=factor(num))) +
+  geom_point()+
+  geom_line()+
+  xlim(0, 500) +
+  scale_color_manual(values = colorRampPalette(brewer.pal(9, "GnBu"))(color_scale)[(color_scale-length(unique(df_plot$num))):color_scale]) +
+  labs(x = "simulation time",
+  y = "kmeans-cluster accuracy",
+  title = "Kmeans cluster accuracy (median) in different density scale",
+  colour = "density") +
   theme_bw()
 
+```
+
+
+
+```{r density_elbrow}
+
+df <- read.csv("python/forR/num_accu_reach_time.csv")[,-1]
+df <- df[df$num %in% c(50,100,150,200,300,500),]
+q = c(.05, .5, .95)
+df_plot <- df %>%
+  group_by(num) %>%
+  summarize(q05 = quantile(time, probs = q[1]), 
+            mid = quantile(time, probs = q[2]),
+            q95 = quantile(time, probs = q[3]))
+
+
+ggplot(df_plot, aes(x=num, y=mid)) +
+  geom_point(color="#f37735", size=4) +
+  geom_ribbon(aes(ymin=q05, ymax=q95), fill="#f37735", alpha=0.2) +
+  labs(x = "density",
+       y = "Required time",
+       title = "Median needed time for K-means to accurate classification") +
+  theme_bw()
+# ggsave("python/pic/num_time.png",width = 8, height = 6)
+
+
+# 
+# df_plot$lognum <- log(df_plot$num)
+# df_plot$logmid <- log(df_plot$mid)
+# my.formula <- df_plot$logmid ~ df_plot$lognum
+# 
+# ggplot(df_plot, aes(x=lognum, y=logmid)) +
+#   geom_point(color="#d62728", size=4, alpha=0.7) +
+#   geom_smooth(method = "lm", formula = y ~ x,
+#               se=TRUE, color="#d62728",fill="#d62728", alpha=0.2) +
+#   stat_poly_eq(
+#     aes(label = paste(..eq.label.., 
+#                       ..adj.rr.label..,
+#                       ..p.value.label.., sep = '~~~~')),
+#     formula = y ~ x,  parse = TRUE,size = 5,label.x = 0.5, label.y = 0.99) +
+#   labs(x = "log (num)",
+#        y = "log (time)",
+#        title = "") +
+#   theme_bw()
 
 ```
+
 
 # vicsek simulation -- noise
 
 
 
-```{r noise}
+```{r noise0}
+accu_df <- read.csv("python/forR/noise_accu_time.csv")[-1]
+accu_df <- accu_df[accu_df$noise %in% c(0.25,0.30,0.35,0.4,0.5,0.6),]
+accu_df <- accu_df[accu_df$time <= 10000, ]
 
+q = c(.05, .5, .95)
+df_plot <- accu_df %>%
+  group_by(time, noise) %>%
+  summarize(q05 = quantile(accu, probs = q[1]), 
+            q50 = quantile(accu, probs = q[2]),
+            q95 = quantile(accu, probs = q[3]),
+            avg = mean(accu))
 
-accu_df <- read.csv("noise_accu_mat.csv")[,-1]
-
-repeat_time = 10
-
-accu_df$perc5 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.05)))
-accu_df$perc95 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.95)))
-accu_df$middle <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.5)))
-accu_df$mean <- apply(accu_df[, 1:repeat_time], 1, function(x) mean(x))
-
-ggplot(accu_df, aes(x=time, y=middle, group=noise, color=noise)) +
-  geom_point()+geom_line()+
-  scale_color_viridis(option = "D") +
-  labs(x = "simulation time", 
-       y = "kmeans-cluster accuracy", 
-       title = "Different noise scale") +
-  theme_minimal()
-
-```
-
-
-# vicsek simulation -- radius
-
-
-```{r radius}
-
-
-accu_df <- read.csv("radius2_accu_mat.csv")[,-1]
-
-repeat_time = 10
-
-
-accu_df$perc5 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.05)))
-accu_df$perc95 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.95)))
-accu_df$middle <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.5)))
-accu_df$mean <- apply(accu_df[, 1:repeat_time], 1, function(x) mean(x))
-
-ggplot(accu_df, aes(x=time, y=middle, group=radius, color=radius)) +
-  geom_point()+geom_line()+
-  scale_color_viridis(option = "D") +
-  labs(x = "simulation time", 
-       y = "kmeans-cluster accuracy", 
-       title = "Different radius scale") +
-  theme_minimal()
-```
-
-
-
-```{r radius_eta}
-
-#### radius when eta = [0.1, 0.5]
-accu_df <- read.csv("radius_accu_mat.csv")[,-1]
-
-repeat_time = 10
-
-accu_df <- accu_df[accu_df$time < 4000, ]
-
-accu_df$perc5 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.05)))
-accu_df$perc95 <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.95)))
-accu_df$middle <- apply(accu_df[, 1:repeat_time], 1, function(x) quantile(x, probs = c(0.5)))
-accu_df$mean <- apply(accu_df[, 1:repeat_time], 1, function(x) mean(x))
-
-ggplot(accu_df, aes(x=time, y=middle, group=radius, color=radius)) +
-  geom_point()+geom_line()+
-  scale_color_viridis(option = "D") +
-  labs(x = "simulation time", 
-       y = "kmeans-cluster accuracy", 
-       title = "Different radius scale with noise difference") +
-  theme_minimal()
-
-select_df <- accu_df[accu_df$middle >= 1, ]
-table(factor(select_df$radius))
+df_plot$noise <- df_plot$noise / 0.1
+color_scale = ceiling(length(unique(df_plot$noise)) * 1.5)
+ggplot(df_plot, aes(x=time, y=q50, group=noise, color=factor(noise))) +
+  geom_point()+
+  geom_line()+
+  scale_color_manual(values = colorRampPalette(brewer.pal(9, "GnBu"))(color_scale)[(color_scale-length(unique(df_plot$noise))):color_scale]) +
+  labs(x = "simulation time",
+  y = "kmeans-cluster accuracy",
+  title = "Kmeans cluster accuracy (median) in different noise scale",
+  colour = "noise fold change") +
+  theme_bw()
+# ggsave("python/pic/noise0_scatter.png",width = 8, height = 6)
 
 ```
 
 
 
+```{r noise_elbrow}
 
+df <- read.csv("python/forR/noise_reach.csv")[,-1]
+df <- df[df$noise %in% c(0.25,0.30,0.35,0.4,0.5,0.6),]
+q = c(.05, .5, .95)
+df_plot <- df %>%
+  group_by(noise) %>%
+  summarize(q05 = quantile(reachtime, probs = q[1]), 
+            mid = quantile(reachtime, probs = q[2]),
+            q95 = quantile(reachtime, probs = q[3]))
+
+df_plot$noise <- df_plot$noise / 0.1
+ggplot(df_plot, aes(x=noise, y=mid)) +
+  geom_point(color="#f37735", size=4) +
+  geom_ribbon(aes(ymin=q05, ymax=q95), fill="#f37735", alpha=0.2) +
+  labs(x = "noise fold",
+       y = "Required time",
+       title = "Median needed time for K-means to accurate classification") +
+  theme_bw()
+# ggsave("python/pic/noise01_time.png",width = 8, height = 6)
+
+
+# 
+# df_plot$lognum <- log(df_plot$num)
+# df_plot$logmid <- log(df_plot$mid)
+# my.formula <- df_plot$logmid ~ df_plot$lognum
+# 
+# ggplot(df_plot, aes(x=lognum, y=logmid)) +
+#   geom_point(color="#d62728", size=4, alpha=0.7) +
+#   geom_smooth(method = "lm", formula = y ~ x,
+#               se=TRUE, color="#d62728",fill="#d62728", alpha=0.2) +
+#   stat_poly_eq(
+#     aes(label = paste(..eq.label.., 
+#                       ..adj.rr.label..,
+#                       ..p.value.label.., sep = '~~~~')),
+#     formula = y ~ x,  parse = TRUE,size = 5,label.x = 0.5, label.y = 0.99) +
+#   labs(x = "log (num)",
+#        y = "log (time)",
+#        title = "") +
+#   theme_bw()
+
+```
+
+### Radius
+
+
+
+```{r rad}
+accu_df <- read.csv("python/forR/rad_accu_all.csv")[-1]
+accu_df <- accu_df[accu_df$rad %in% c(0.0001, 0.0005, 0.001),]
+accu_df <- accu_df[accu_df$time <= 5000, ]
+accu_df$time <- ceiling(accu_df$time / 50) *50
+
+q = c(.05, .5, .95)
+df_plot <- accu_df %>%
+  group_by(time, rad) %>%
+  summarize(q05 = quantile(value, probs = q[1]), 
+            q50 = quantile(value, probs = q[2]),
+            q95 = quantile(value, probs = q[3]),
+            avg = mean(value))
+
+df_plot$rad <- df_plot$rad / 0.01
+color_scale = ceiling(length(unique(df_plot$rad)) * 1.5)
+ggplot(df_plot, aes(x=time, y=q50, group=rad, color=factor(rad))) +
+  geom_point()+
+  geom_line()+
+  scale_color_manual(values = colorRampPalette(brewer.pal(9, "GnBu"))(color_scale)[(color_scale-length(unique(df_plot$rad))):color_scale]) +
+  labs(x = "simulation time",
+  y = "kmeans-cluster accuracy",
+  title = "Kmeans cluster accuracy (median) in different radius scale",
+  colour = "radius fold change") +
+  theme_bw()
+# ggsave("python/pic/rad_scatter.png",width = 8, height = 6)
+
+```
+
+
+```{r rad_elbrow}
+
+df <- read.csv("python/forR/rad_accu_reach_time.csv")[,-1]
+df <- df[df$rad %in% c(0.0001, 0.0005, 0.001),]
+df$time <- ceiling(df$time / 50) *50
+
+q = c(.05, .5, .95)
+df_plot <- df %>%
+  group_by(rad) %>%
+  summarize(q05 = quantile(time, probs = q[1]), 
+            mid = quantile(time, probs = q[2]),
+            q95 = quantile(time, probs = q[3]))
+
+df_plot$rad <- df_plot$rad / 0.01
+ggplot(df_plot, aes(x=rad, y=mid)) +
+  geom_point(color="#f37735", size=4) +
+  geom_ribbon(aes(ymin=q05, ymax=q95), fill="#f37735", alpha=0.2) +
+  labs(x = "vision radius fold change",
+       y = "Required time",
+       title = "") +
+  theme_bw()
+# ggsave("python/pic/rad_time.png",width = 8, height = 6)
+
+
+# 
+# df_plot$lognum <- log(df_plot$num)
+# df_plot$logmid <- log(df_plot$mid)
+# my.formula <- df_plot$logmid ~ df_plot$lognum
+# 
+# ggplot(df_plot, aes(x=lognum, y=logmid)) +
+#   geom_point(color="#d62728", size=4, alpha=0.7) +
+#   geom_smooth(method = "lm", formula = y ~ x,
+#               se=TRUE, color="#d62728",fill="#d62728", alpha=0.2) +
+#   stat_poly_eq(
+#     aes(label = paste(..eq.label.., 
+#                       ..adj.rr.label..,
+#                       ..p.value.label.., sep = '~~~~')),
+#     formula = y ~ x,  parse = TRUE,size = 5,label.x = 0.5, label.y = 0.99) +
+#   labs(x = "log (num)",
+#        y = "log (time)",
+#        title = "") +
+#   theme_bw()
+
+```
+
+
+
+# Vicsek (Triple types)
+
+## motion
+<video width="75%" height="75%" controls>
+
+<source src="video/vicsek_ptcl_triple.mp4" type="video/mp4">
+
+</video>
+
+## PCA
+
+<video width="75%" height="75%" controls>
+
+<source src="video/vicsek_pca_org_triple.mp4" type="video/mp4">
+
+</video>
+
+## cluster (kmeans)
+
+<video width="75%" height="75%" controls>
+
+<source src="video/vicsek_kmeans_pca_triple.mp4" type="video/mp4">
+
+</video>
+
+<video width="75%" height="75%" controls>
+
+<source src="video/vicsek_kmeans_accu_triple.mp4" type="video/mp4">
+
+</video>
+
+## n Cluster (silhouette)
+
+
+<video width="75%" height="75%" controls>
+<source src="video/vicsek_ncluster_silhouette_pca_triple.mp4" type="video/mp4">
+</video>
+
+
+<video width="75%" height="75%" controls>
+<source src="video/vicsek_ncluster_silhouette_triple.mp4" type="video/mp4">
+</video>
+
+
+
+
+
+
+
+# Variance of numbers
+
+<video width="75%" height="75%" controls>
+<source src="video/ratio_movie_num4.mp4" type="video/mp4">
+</video>
+
+
+
+# Between simualtions
+
+<video width="75%" height="75%" controls>
+<source src="video/simu_PCA_movie.mp4" type="video/mp4">
+</video>
+
+<video width="75%" height="75%" controls>
+<source src="video/simu_PCA_triple_movie.mp4" type="video/mp4">
+</video>
+
+
+
+# Order Parameter
+
+
+
+```{r orderparam1, fig.cap="Radius variance "}
+knitr::include_graphics("python/pic/order_param_rad_accu.png")
+```
+
+
+
+
+<!-- # nPCA -->
+
+
+
+<!-- ```{r npca, fig.cap="nPCA is the PCA elements numbers used for kmeans cluster"} -->
+<!-- npca_accu <- read.csv("D:/Project/20220706_VicsekModel/Github/vicsek_trajectory/python/forR/npca_accu.csv", row.names=1) -->
+
+<!-- npca_accu <- npca_accu[,npca_accu[1,] != 990] -->
+
+
+<!-- # npca_accu$npca = 1:10 -->
+
+<!-- df_plot <- data.frame('npca' = 1:10, 'time'=npca_accu[,4]) -->
+
+<!-- q = c(.05, .5, .95) -->
+<!-- df_plot$q95 <- apply(npca_accu, 1, function(x) quantile(x, probs = q[3])) -->
+<!-- df_plot$q05 <- apply(npca_accu, 1, function(x) quantile(x, probs = q[1])) -->
+<!-- df_plot$time <- apply(npca_accu, 1, function(x) quantile(x, probs = q[2])) -->
+
+
+<!-- ggplot(df_plot, aes(x=npca, y=time)) + -->
+<!--   geom_point(color="#f37735", size=4) + -->
+<!--   geom_ribbon(aes(ymin=q05, ymax=q95), fill="#f37735", alpha=0.2) + -->
+<!--   labs(x = "nPCA", -->
+<!--        y = "Required time", -->
+<!--        title = "") + -->
+<!--   scale_x_continuous(breaks=seq(1, 10, 1)) + -->
+<!--   theme_bw() -->
+
+<!-- ``` -->
 
 
 
