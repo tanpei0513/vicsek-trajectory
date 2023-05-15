@@ -1,6 +1,5 @@
 import numpy as np
 import warnings
-
 warnings.filterwarnings("ignore")
 
 from scipy.integrate import ode
@@ -140,14 +139,14 @@ class DorsognaGenerator(Particle):
     def pca(self, time_series, pca_n=2):
 
         self.time_series = [int(i) for i in time_series]
-        self.pca_component = [None] * len(self.time_series)
+        self.pca_comp = [None] * len(self.time_series)
 
         for i, t in enumerate(self.time_series):
             data = [np.arctan2(self.vy[int(j)], self.vx[int(j)]) for j in range(t)]
             # data = np.concatenate((np.sin(np.array(data).T), np.cos(np.array(data).T)), axis=1)
             # data = StandardScaler().fit_transform(np.array(data).T)
             data = np.array(data).T
-            self.pca_component[i] = PCA(n_components=pca_n, random_state=31415).fit_transform(data)
+            self.pca_comp[i] = PCA(n_components=pca_n, random_state=31415).fit_transform(data)
             print(f"pca: {t} / {self.time_series[-1]}", end="\r")
 
     def cluster(self, cluster_type="spectral", pca_n=2):
@@ -157,7 +156,7 @@ class DorsognaGenerator(Particle):
         self.accuracy_arry = [None] * len(self.time_series)
 
         for i, t in enumerate(self.time_series):
-            components = self.pca_component[i][:, 0:pca_n]
+            components = self.pca_comp[i][:, 0:pca_n]
             if cluster_type == "spectral":
                 cluster_label = SpectralClustering(self.type_num, affinity='nearest_neighbors',random_state=31415).fit(components).labels_
                 [self.cluster_list[i], self.accuracy_arry[i]] = accu_type_score(self.type_label, cluster_label)

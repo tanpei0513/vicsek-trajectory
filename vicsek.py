@@ -9,7 +9,6 @@ from sklearn.metrics import silhouette_score
 from utils import accu_type_score
 
 import warnings
-
 warnings.filterwarnings("ignore")
 
 
@@ -130,7 +129,11 @@ class VicsekGenerator(Particle):
             xpos_mat[:, t] = xy_t[:, 0]
             ypos_mat[:, t] = xy_t[:, 1]
 
-            print("Vicsek Simulation: ", t + 1, "/", duration, end="\r")
+            if t % 1000 == 0:
+                # print(f"Vicsek Simulation: {t} / {self.time_series[-1]}", end="\r")
+                print(f"Vicsek Simulation: {t} / {int(self.tmax)}")
+
+        print(f"Vicsek Simulation: finish!")
 
         return theta_mat, xpos_mat, ypos_mat
 
@@ -165,7 +168,12 @@ class VicsekGenerator(Particle):
             # data = np.arctan2(np.sin(data), np.cos(data))
             data = np.concatenate((np.sin(data), np.cos(data)), axis=1)
             self.pca_comp[i] = PCA(n_components=pca_n, random_state=31415).fit_transform(data)
-            print(f"pca: {t} / {self.time_series[-1]}", end="\r")
+            if t % 1000 == 0:
+                # print(f"PCA: {t} / {self.time_series[-1]}", end="\r")
+                print(f"PCA: {t} / {self.time_series[-1]}")
+
+        print("PCA: finish!")
+
 
     def cluster(self, cluster_method="kmeans", pca_n=2):
         """
@@ -201,7 +209,11 @@ class VicsekGenerator(Particle):
                 [self.cluster_list[i], self.accuracy_arry[i]] = accu_type_score(self.type_label, cluster_label)
             else:
                 print('Optional cluster method: "kmeans", "spectral".')
-            print(f"cluster: {t} / {self.time_series[-1]}", end="\r")
+            if t % 1000 == 0:
+                # print(f"cluster: {t} / {self.time_series[-1]}", end="\r")
+                print(f"cluster: {t} / {self.time_series[-1]}")
+
+        print(f"cluster: finish!")
 
         return self.accuracy_arry[-1]
 
@@ -310,7 +322,11 @@ class VicsekGenerator(Particle):
                 sil_coef[j] = silhouette_score(pca_comp, clusters[j])
             self.nclust_type[i] = clusters[np.argmax(sil_coef)]
             self.nclust_sil[i] = sil_coef
-            print(f"ncluster: {t} / {self.time_series[-1]}", end="\r")
+            if t % 1000 == 0:
+                # print(f"ncluster: {t} / {self.time_series[-1]}", end="\r")
+                print(f"ncluster: {t} / {self.time_series[-1]}")
+
+        print(f"ncluster: finish!")
 
     def order_param(self):
         """
